@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper
+    networks:
+      - kafka-net
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    image: bitnami/kafka:2.8.1
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    networks:
+      - kafka-net
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT_HOST://:9092,PLAINTEXT_INTERNAL://:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT_HOST://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT_INTERNAL
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_HEAP_OPTS=-Xmx2G -Xms2G
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    networks:
+      - kafka-net
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+
+  kafka-init:
+    image: bitnami/kafka:2.8.1
+    container_name: kafka-init
+    depends_on:
+      - kafka
+    networks:
+      - kafka-net
+    entrypoint: [ "/bin/bash", "-c" ]
+    command: >
+      "
+      echo 'Aguardando Kafka subir...' &&
+      until kafka-topics.sh --bootstrap-server kafka:29092 --list > /dev/null 2>&1;
+      do
+        echo 'Kafka não está pronto, aguardando...';
+        sleep 2;
+      done;
+      echo 'Kafka está no ar. Criando tópico...' &&
+      kafka-topics.sh --create --topic meu-topico --bootstrap-server kafka:29092 --replication-factor 1 --partitions 3 --config retention.ms=60000 ||
+      echo 'Tópico já existe ou erro ao criar' &&
+      echo 'Finalizado'
+      "
+
+networks:
+  kafka-net:
+    driver: bridge
