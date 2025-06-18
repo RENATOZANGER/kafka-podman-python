@@ -9,6 +9,7 @@ Este projeto disponibiliza um ambiente Kafka completo rodando localmente usando 
 - 🐳 ZooKeeper (Bitnami)
 - 🐳 Kafka UI (provectuslabs/kafka-ui)
 - 🐍 Python com confluent-kafka
+- 🐘 Podman (gerenciador de containers, alternativa ao Docker)
 
 ## 🐍 Instalar dependências Python
 ```bash
